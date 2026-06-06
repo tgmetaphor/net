@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="theme-color" content="#000000">
+    <title>ArictoFame | Фейм-лист</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Telegram Login Widget -->
+    <script src="https://telegram.org/js/telegram-widget.js?22" async></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: #000;
+            color: #e0e0e0;
+            min-height: 100vh;
+            transition: background 0.3s;
+        }
+        /* снег (опционально) */
+        .snow-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        @keyframes snowfall { to { transform: translateY(100vh); } }
+        /* навигация */
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #333;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-left, .nav-center, .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .menu-btn, .nav-icon {
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .menu-btn:hover, .nav-icon:hover { background: rgba(255,255,255,0.1); }
+        .logo { font-size: 1.5rem; font-weight: bold; color: #fff; }
+        .nav-tab {
+            background: none;
+            border: none;
+            color: #888;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 25px;
+        }
+        .nav-tab.active { background: rgba(255,255,255,0.1); color: #fff; }
+        .apply-btn {
+            padding: 8px 18px;
+            background: #1f1f1f;
+            border: 1px solid #444;
+            border-radius: 25px;
+            color: #e0e0e0;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100vh;
+            background: #0a0a0a;
+            z-index: 1000;
+            transition: left 0.3s;
+            padding: 20px;
+            border-right: 1px solid #333;
+        }
+        .side-menu.active { left: 0; }
+        .menu-header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+        .close-menu { background: none; border: none; color: #aaa; font-size: 1.5rem; cursor: pointer; }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            color: #aaa;
+            background: none;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+            border-radius: 10px;
+        }
+        .menu-item:hover { background: #1a1a1a; color: #fff; }
+        .section {
+            display: none;
+            padding: 30px;
+            animation: fadeIn 0.4s ease;
+        }
+        .section.active-section { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .search-container {
+            background: #111;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #222;
+        }
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 12px 12px 12px 45px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 30px;
+            color: #fff;
+        }
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .filter-btn {
+            padding: 8px 16px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 25px;
+            color: #aaa;
+            cursor: pointer;
+        }
+        .filter-btn.active, .filter-btn:hover { background: #2a2a2a; color: #fff; }
+        .members-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .member-card {
+            background: #111;
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid #222;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .member-card:hover { transform: translateY(-5px); border-color: #555; }
+        .member-avatar {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            background: #222;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        .member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .member-info h3 { color: #fff; margin-bottom: 8px; }
+        .member-role {
+            display: inline-block;
+            background: #1a1a1a;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-bottom: 12px;
+        }
+        .member-description {
+            color: #aaa;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        /* Профиль */
+        .profile-header {
+            background: #0a0a0a;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 2px solid #444;
+        }
+        .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-title { font-size: 2rem; margin-bottom: 5px; }
+        .profile-badges { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
+        .badge {
+            padding: 5px 12px;
+            background: #1a1a1a;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        .action-btn {
+            padding: 10px 20px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 30px;
+            color: #fff;
+            cursor: pointer;
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            text-decoration: none;
+            margin-right: 10px;
+        }
+        .profile-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 30px;
+        }
+        @media (max-width: 768px) {
+            .profile-content { grid-template-columns: 1fr; }
+            .top-nav .nav-center { display: none; }
+        }
+        .profile-description, .profile-stats {
+            background: #0a0a0a;
+            padding: 25px;
+            border-radius: 20px;
+        }
+        /* модалки */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #111;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            padding: 20px;
+            border: 1px solid #333;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .admin-panel {
+            margin-top: 30px;
+            background: #0a0a0a;
+            border-radius: 20px;
+            padding: 20px;
+        }
+        .request-item {
+            padding: 15px;
+            border-bottom: 1px solid #222;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        button {
+            background: #222;
+            border: none;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        button.danger { background: #440000; }
+        .form-group {
+            margin: 15px 0;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            border-radius: 10px;
+        }
+        .captcha-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        hr { border-color: #222; margin: 20px 0; }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+<div class="snow-container" id="snowContainer"></div>
+
+<nav class="top-nav">
+    <div class="nav-left">
+        <button class="menu-btn" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <span class="logo">ArictoFame</span>
+    </div>
+    <div class="nav-center">
+        <button class="nav-tab active" data-section="main">Главная</button>
+        <button class="nav-tab" data-section="requests">Мои заявки</button>
+    </div>
+    <div class="nav-right">
+        <button id="authBtn" class="apply-btn"><i class="fab fa-telegram"></i> <span>Войти</span></button>
+        <button id="settingsBtn" class="nav-icon"><i class="fas fa-cog"></i></button>
+    </div>
+</nav>
+
+<div class="side-menu" id="sideMenu">
+    <div class="menu-header"><h3>Меню</h3><button class="close-menu" id="closeMenu">&times;</button></div>
+    <div class="menu-items">
+        <button class="menu-item" data-section="main"><i class="fas fa-home"></i> Главная</button>
+        <button class="menu-item" data-section="requests"><i class="fas fa-paper-plane"></i> Заявки</button>
+        <button class="menu-item" id="logoutMenuItem" style="display:none"><i class="fas fa-sign-out-alt"></i> Выйти</button>
+    </div>
+</div>
+
+<!-- Секция главной (список участников будет динамическим) -->
+<section id="main" class="section active-section">
+    <div class="container">
+        <div class="search-container">
+            <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Поиск..."></div>
+            <div class="filter-buttons" id="filterButtons"></div>
+        </div>
+        <div id="membersGrid" class="members-grid">Загрузка списка...</div>
+    </div>
+</section>
+
+<section id="profile-details" class="section">
+    <div class="container" id="profileContent"></div>
+</section>
+
+<section id="requests" class="section">
+    <div class="container">
+        <h2>📝 Мои заявки</h2>
+        <div id="userRequestForm" style="background:#0a0a0a; padding:20px; border-radius:20px; margin-top:20px;">
+            <h3>Новая заявка</h3>
+            <textarea id="requestText" rows="3" placeholder="Опишите почему вы должны быть в фейм-листе..." style="width:100%"></textarea>
+            <button id="submitRequestBtn">Отправить заявку</button>
+        </div>
+        <div id="requestsList" style="margin-top:30px;">Список ваших заявок...</div>
+        <!-- Админ-панель -->
+        <div id="adminPanel" style="display:none; margin-top:40px;">
+            <hr><h2>👑 Админ панель — все заявки</h2>
+            <div id="adminRequestsList"></div>
+        </div>
+    </div>
+</section>
+
+<!-- Модалка настроек -->
+<div id="settingsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h3>Настройки</h3><button class="close-modal" onclick="closeModal('settingsModal')">&times;</button></div>
+        <label><input type="checkbox" id="snowToggle"> ❄️ Снег</label><br><br>
+        <label><input type="color" id="neonColor" value="#808080"> Цвет неона</label>
+        <button id="applyNeon" style="margin-top:10px">Применить</button>
+    </div>
+</div>
+
+<!-- Модалка входа через Telegram (капча) -->
+<div id="authModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h3>Авторизация через Telegram</h3><button class="close-modal" onclick="closeModal('authModal')">&times;</button></div>
+        <div id="telegramWidget"></div>
+        <div class="form-group">
+            <label>🔐 Капча: <span id="captchaQuestion"></span></label>
+            <div class="captcha-row"><input type="text" id="captchaAnswer" placeholder="Ответ"><button id="refreshCaptcha">⟳</button></div>
+        </div>
+        <div id="authStatus"></div>
+    </div>
+</div>
+
+<script>
+    // ---------- Глобальные переменные ----------
+    let currentUser = null;      // { id, first_name, isAdmin }
+    let membersList = [];        // демо-список участников
+    let categories = ["Все","Модерация","Медийки","Высокий фейм","Средний фейм","Скам"];
+    
+    // ---------- Вспомогательные функции ----------
+    function showNotification(msg, type='info') {
+        const div = document.createElement('div');
+        div.textContent = msg;
+        div.style.position = 'fixed';
+        div.style.bottom = '20px';
+        div.style.right = '20px';
+        div.style.padding = '12px 24px';
+        div.style.backgroundColor = type==='error'?'#b00020':'#2e7d32';
+        div.style.color = '#fff';
+        div.style.borderRadius = '8px';
+        div.style.zIndex = 10000;
+        document.body.appendChild(div);
+        setTimeout(()=>div.remove(),3000);
+    }
+    
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+    
+    async function fetchAPI(path, options={}) {
+        const res = await fetch(path, { credentials: 'same-origin', ...options });
+        if(!res.ok) throw new Error(await res.text());
+        return res.json();
+    }
+    
+    // Загрузка текущей сессии
+    async function loadSession() {
+        try {
+            const data = await fetchAPI('/api/auth');
+            if(data.authenticated) {
+                currentUser = { id: data.userId, first_name: data.first_name || 'User', isAdmin: data.isAdmin };
+                updateUIBasedOnAuth();
+                if(currentUser.isAdmin) loadAdminRequests();
+                loadUserRequests();
+            } else {
+                currentUser = null;
+                updateUIBasedOnAuth();
+            }
+        } catch(e) { console.warn(e); }
+    }
+    
+    function updateUIBasedOnAuth() {
+        const authBtnSpan = document.querySelector('#authBtn span');
+        const logoutItem = document.getElementById('logoutMenuItem');
+        const adminPanel = document.getElementById('adminPanel');
+        if(currentUser) {
+            authBtnSpan.textContent = currentUser.first_name;
+            if(logoutItem) logoutItem.style.display = 'flex';
+            if(adminPanel && currentUser.isAdmin) adminPanel.style.display = 'block';
+            document.getElementById('userRequestForm').style.display = currentUser.isAdmin ? 'none' : 'block';
+        } else {
+            authBtnSpan.textContent = 'Войти';
+            if(logoutItem) logoutItem.style.display = 'none';
+            if(adminPanel) adminPanel.style.display = 'none';
+            document.getElementById('userRequestForm').style.display = 'block';
+        }
+    }
+    
+    // Отправка заявки
+    document.getElementById('submitRequestBtn')?.addEventListener('click', async()=>{
+        if(!currentUser) { showNotification('Сначала авторизуйтесь','error'); openAuthModal(); return; }
+        const text = document.getElementById('requestText').value.trim();
+        if(!text) return showNotification('Введите текст заявки','error');
+        try {
+            await fetchAPI('/api/submit-request', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ text })
+            });
+            showNotification('Заявка отправлена!');
+            document.getElementById('requestText').value = '';
+            loadUserRequests();
+        } catch(e) { showNotification(e.message,'error'); }
+    });
+    
+    async function loadUserRequests() {
+        if(!currentUser) return;
+        const data = await fetchAPI('/api/submit-request?my=true');
+        const container = document.getElementById('requestsList');
+        if(data.requests && data.requests.length) {
+            container.innerHTML = data.requests.map(r => `<div class="request-item">📄 ${r.text} — <strong>${r.status}</strong> (${new Date(r.createdAt).toLocaleString()})</div>`).join('');
+        } else container.innerHTML = '<p>У вас пока нет заявок.</p>';
+    }
+    
+    async function loadAdminRequests() {
+        if(!currentUser?.isAdmin) return;
+        const data = await fetchAPI('/api/submit-request?admin=true');
+        const container = document.getElementById('adminRequestsList');
+        if(data.requests && data.requests.length) {
+            container.innerHTML = data.requests.map(r => `
+                <div class="request-item">
+                    <div><b>${r.userName || r.userId}</b>: ${r.text}<br><small>${r.status} | ${new Date(r.createdAt).toLocaleString()}</small></div>
+                    ${r.status !== 'completed' ? `<button onclick="completeRequest('${r.id}')">✅ Выполнить</button>` : '<span>✅ Выполнено</span>'}
+                </div>
+            `).join('');
+        } else container.innerHTML = '<p>Нет заявок.</p>';
+    }
+    
+    window.completeRequest = async (requestId) => {
+        await fetchAPI('/api/submit-request', {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ requestId, action: 'complete' })
+        });
+        showNotification('Заявка выполнена');
+        loadAdminRequests();
+    };
+    
+    // Авторизация через виджет + капча
+    let currentCaptcha = { text: '', result: 0 };
+    function generateCaptcha() {
+        const a = Math.floor(Math.random()*10)+1;
+        const b = Math.floor(Math.random()*10)+1;
+        currentCaptcha = { text: `${a} + ${b}`, result: a+b };
+        document.getElementById('captchaQuestion').innerText = currentCaptcha.text;
+        document.getElementById('captchaAnswer').value = '';
+    }
+    document.getElementById('refreshCaptcha')?.addEventListener('click', generateCaptcha);
+    
+    async function onTelegramAuth(user) {
+        const answer = document.getElementById('captchaAnswer').value.trim();
+        if(parseInt(answer) !== currentCaptcha.result) {
+            showNotification('Неверная капча','error');
+            generateCaptcha();
+            return;
+        }
+        try {
+            const res = await fetchAPI('/api/auth', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ tgData: user, captchaAnswer: answer, captchaExpression: currentCaptcha.text })
+            });
+            if(res.success) {
+                showNotification(`Добро пожаловать, ${user.first_name}!`);
+                closeModal('authModal');
+                await loadSession();
+            } else throw new Error('Ошибка авторизации');
+        } catch(e) { showNotification(e.message,'error'); generateCaptcha(); }
+    }
+    
+    function openAuthModal() {
+        const widgetDiv = document.getElementById('telegramWidget');
+        widgetDiv.innerHTML = `<script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="YOUR_BOT_USERNAME" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"><\/script>`;
+        generateCaptcha();
+        document.getElementById('authModal').classList.add('active');
+    }
+    document.getElementById('authBtn').addEventListener('click', openAuthModal);
+    document.getElementById('logoutMenuItem')?.addEventListener('click', async()=>{
+        await fetchAPI('/api/auth', { method: 'DELETE' });
+        currentUser = null;
+        updateUIBasedOnAuth();
+        showNotification('Вы вышли');
+        location.reload();
+    });
+    
+    // Загрузка демо-списка участников (можно заменить на реальный)
+    async function loadMembersList() {
+        // симулируем список участников
+        membersList = [
+            { id:1, nickname:"миерт", role:"Владелец", category:"Модерация", description:"Создатель листа", verified:true, pinned:true },
+            { id:2, nickname:"Злюка", role:"Владелец", category:"Модерация", description:"Кодер", verified:true },
+            { id:3, nickname:"Ар¡сто?", role:"Владелец", category:"Модерация", description:"Разработчик ботов", verified:true }
+        ];
+        renderMembers(membersList);
+        initFilters();
+    }
+    
+    function renderMembers(members) {
+        const container = document.getElementById('membersGrid');
+        container.innerHTML = members.map(m => `
+            <div class="member-card" data-id="${m.id}">
+                <div class="member-avatar"><img src="https://ui-avatars.com/api/?background=2a2a2a&color=fff&name=${m.nickname[0]}" alt="avatar"></div>
+                <div class="member-info"><h3>${m.nickname} ${m.verified?'✓':''}</h3><div class="member-role">${m.role}</div><div class="member-description">${m.description}</div></div>
+            </div>
+        `).join('');
+        document.querySelectorAll('.member-card').forEach(card => {
+            card.addEventListener('click', () => showProfile(card.dataset.id));
+        });
+    }
+    
+    function showProfile(id) {
+        const member = membersList.find(m => m.id == id);
+        if(!member) return;
+        const profileHtml = `
+            <div class="profile-header"><div class="profile-avatar"><img src="https://ui-avatars.com/api/?background=2a2a2a&name=${member.nickname}"></div>
+            <h1 class="profile-title">${member.nickname}</h1><div class="profile-badges"><span class="badge">${member.category}</span></div>
+            <div class="profile-actions"><button class="action-btn" onclick="copyLink('${member.nickname}')"><i class="fas fa-share"></i> Поделиться</button></div></div>
+            <div class="profile-content"><div class="profile-description"><p>${member.description}</p></div><div class="profile-stats">Статистика: роль ${member.role}</div></div>
+        `;
+        document.getElementById('profileContent').innerHTML = profileHtml;
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
+        document.getElementById('profile-details').classList.add('active-section');
+    }
+    window.copyLink = (name) => { navigator.clipboard.writeText(`https://t.me/share/url?url=Профиль ${name} на ArictoFame`); showNotification('Ссылка скопирована'); };
+    
+    function initFilters() {
+        const filterDiv = document.getElementById('filterButtons');
+        filterDiv.innerHTML = categories.map(cat => `<button class="filter-btn ${cat==='Все'?'active':''}" data-cat="${cat}">${cat}</button>`).join('');
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const cat = btn.dataset.cat;
+                if(cat === 'Все') renderMembers(membersList);
+                else renderMembers(membersList.filter(m => m.category === cat));
+            });
+        });
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = membersList.filter(m => m.nickname.toLowerCase().includes(term) || m.description.toLowerCase().includes(term));
+            renderMembers(filtered);
+        });
+    }
+    
+    // Настройки (снег, неон)
+    function initSettings() {
+        const snowToggle = document.getElementById('snowToggle');
+        const snowContainer = document.getElementById('snowContainer');
+        snowToggle.addEventListener('change', () => {
+            snowContainer.style.display = snowToggle.checked ? 'block' : 'none';
+            localStorage.setItem('snow', snowToggle.checked);
+        });
+        if(localStorage.getItem('snow') === 'false') snowToggle.checked = false;
+        else snowToggle.checked = true;
+        snowContainer.style.display = snowToggle.checked ? 'block' : 'none';
+        
+        const neonColor = document.getElementById('neonColor');
+        const applyNeon = document.getElementById('applyNeon');
+        applyNeon.addEventListener('click', () => {
+            document.body.style.boxShadow = `0 0 50px ${neonColor.value}`;
+            localStorage.setItem('neonColor', neonColor.value);
+        });
+        if(localStorage.getItem('neonColor')) {
+            document.body.style.boxShadow = `0 0 50px ${localStorage.getItem('neonColor')}`;
+            neonColor.value = localStorage.getItem('neonColor');
+        }
+        
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            document.getElementById('settingsModal').classList.add('active');
+        });
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            if(btn.closest('.modal')) btn.addEventListener('click', () => btn.closest('.modal').classList.remove('active'));
+        });
+    }
+    
+    // Навигация
+    function initNav() {
+        document.getElementById('menuToggle').addEventListener('click',()=>document.getElementById('sideMenu').classList.add('active'));
+        document.getElementById('closeMenu').addEventListener('click',()=>document.getElementById('sideMenu').classList.remove('active'));
+        document.querySelectorAll('.nav-tab, .menu-item[data-section]').forEach(el => {
+            el.addEventListener('click',(e)=>{
+                const section = el.dataset.section;
+                if(section) {
+                    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active-section'));
+                    document.getElementById(section).classList.add('active-section');
+                    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+                    if(el.classList.contains('nav-tab')) el.classList.add('active');
+                    document.getElementById('sideMenu').classList.remove('active');
+                }
+            });
+        });
+    }
+    
+    // снежинки
+    function createSnow() {
+        const container = document.getElementById('snowContainer');
+        for(let i=0;i<50;i++) {
+            const flake = document.createElement('div');
+            flake.style.position = 'absolute';
+            flake.style.width = `${Math.random()*5+2}px`;
+            flake.style.height = flake.style.width;
+            flake.style.backgroundColor = '#fff';
+            flake.style.borderRadius = '50%';
+            flake.style.left = `${Math.random()*100}vw`;
+            flake.style.opacity = Math.random()*0.6;
+            flake.style.animation = `snowfall ${Math.random()*5+5}s linear infinite`;
+            flake.style.top = `-10px`;
+            container.appendChild(flake);
+        }
+    }
+    createSnow();
+    
+    loadSession();
+    loadMembersList();
+    initNav();
+    initSettings();
+</script>
+</body>
+</html>
